@@ -1,0 +1,51 @@
+name: Build APK
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          unzip -o Nyalee-app-project.zip
+          ls -la
+          # if files are inside a folder, move them up
+          if [ -d "Nyalee-app-project" ]; then cp -r Nyalee-app-project/* .; fi
+          ls -la
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Web
+        run: npm run build || echo "no build"
+
+      - name: Add Android & Copy
+        run: |
+          npx cap add android
+          npx cap copy android
+
+      - name: Build APK with Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nyalee-app-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
